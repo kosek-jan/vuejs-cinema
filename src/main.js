@@ -1,14 +1,25 @@
 import Vue from 'vue';
 import './style.scss';
 
-import genres from './util/genres';
+import MovieList from './components/MovieList.vue';
+import MovieFilter from './components/MovieFilter.vue';
+
+import VueResource from 'vue-resource';
+Vue.use(VueResource);
+
+import moment from 'moment-timezone';
+moment.tz.setDefault("UTC");
+Object.defineProperty(Vue.prototype, '$moment', {get(){ return this.$root.moment}});
 
 new Vue({
     el: '#app',
     data(){
         return {
             genre: [],
-            time: []
+            time: [],
+            movies: [],
+            moment,
+            day: moment()
         }
     },
     methods:{
@@ -24,71 +35,12 @@ new Vue({
         }
     },
     components: {
-        'movie-list': {
-            template:   `<div id="movie-list">
-                            <div v-for="movie in filteredMovies" class="movie"> {{ movie.title }}</div>
-                        </div>`,
-            data(){
-                return {
-                    movies: [
-                        {title: 'Pulp Fiction', genre: genres.CRIME},
-                        {title: 'Home Alone', genre: genres.COMEDY},
-                        {title: 'Austin Powers', genre: genres.COMEDY},
-                    ],
-                }
-            },
-            props: [ 'genre', 'time'],
-            methods:{
-                moviePassesGenreFilter(movie){
-                    if(!this.genre.length){
-                        return true;
-                    }
-                    return this.genre.find(genre => movie.genre === genre);
-                }
-            },
-            computed: {
-                filteredMovies(){
-                    return this.movies.filter(this.moviePassesGenreFilter);
-                }
-            }
-        },
-        'movie-filter': {
-            data(){
-                return {
-                    genres
-                }
-            },
-            template:   `<div id="movie-filter">
-                                <h2>Filter results</h2>
-                                <div class="filter-group">
-                                    <check-filter v-for="genre in genres" :title="genre" @check-filter="checkFilter"></check-filter>
-                                </div>
-                            </div>`,
-            methods:{
-                checkFilter(catergory, title, checked){
-                    this.$emit('check-filter', catergory, title, checked);
-                }
-            },
-            components: {
-                'check-filter': {
-                    data(){
-                        return {
-                            checked: false,
-                        }
-                    },
-                    props: ['title'],
-                    template: `<div :class="{'check-filter': true, active: checked}" @click="checkFilter">
-                                    <span class="checkbox"></span>
-                                    <span class="check-filter-title">{{ title }}</span>
-                                </div>`,
-                    methods:{
-                        checkFilter(){
-                            this.checked = !this.checked;
-                            this.$emit('check-filter', 'genre', this.title, this.checked);
-                        }
-                    }
-                }
-            }
-        }
+        MovieList,
+        MovieFilter,
+    },
+    created(){
+        this.$http.get('/api').then(response => {
+            this.movies = response.data;
+        })
     }
 });
